@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<script src="cookie.js"></script>
+		<script>
+			function chg(){
+				var cookieName=document.getElementById("name").value;
+				var cookieValue=document.getElementById("value").value;
+				var cookieExpires=document.getElementById("expires").value;
+				//alert(cookiename+"="+cookieval);
+				cookieadd(cookieName,cookieValue,cookieExpires);
+				printcookie();
+			}
+			function printcookie(){
+				var list="";
+				if (listviwe==1) {
+					if ( document.cookie ) {
+						var cookieArr = document.cookie.split(';'); 
+						for (var i = 0; i < cookieArr.length; i++) {
+							var cookiePair = cookieArr[i].split('=');
+								var list = list + '<input type="text" readonly="true" value="' + cookiePair[0] + '"/>=<input type="text" readonly="true" value="' + cookiePair[1] + '"/>;<input type="button" onclick="rmc(' + `'${cookiePair[0]}'` + ')" value="Remove"/><br>';
+						}
+						document.getElementById("cookielist").innerHTML=list;
+					} else {
+						document.getElementById("cookielist").innerHTML='<input type="text" readonly="true" value=" "/>=<input type="text" readonly="true" value=" "/>;';
+					}
+				} else {
+					document.getElementById("cookielist").innerHTML=document.cookie;
+				}
+			}
+			function rmc(name){
+				cookieadd(name,"",0);
+				printcookie();
+			}
+			function chgview(){
+				if (listviwe==0) {
+					listviwe=1;
+					document.getElementById("chgview").value="Now:List";
+				} else {
+					listviwe=0;
+					document.getElementById("chgview").value="Now:String";
+				}
+				printcookie();
+			}
+			window.onload=function(){
+				listviwe=1;
+				console.log("Ver 0.01");
+				cookielist();
+				if (checkcookie()==false) {
+					console.log("Cookie load fail\n\nExit");
+					alert("Cookie检测失败");
+					document.write("fail");
+				} else {
+					printcookie();
+				}
+			}
+		</script>
+	</head>
+	<body>
+		<p>
+			<input type="text" id="name"/>
+			=
+			<input type="text" id="value"/>
+			;
+			<br>
+			expires=
+			<input type="text" id="expires"/>
+			<br>
+			<input type="button" onclick="chg()" value="Change"/>
+			<input type="button" onclick="printcookie()" value="Reflash"/>
+			<input type="button" onclick="chgview()" value="Now:List" id="chgview"/>
+		</p>
+		<hr>
+		<p id="cookielist"/>
+	</body>
+<html>
