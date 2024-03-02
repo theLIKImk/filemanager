@@ -11,6 +11,8 @@
 	height:88%;
 	width:70%;
 	float:left;
+	word-wrap:break-word;
+	overflow:auto;
 }
 .user_act_css{
 	background-color:#EEEEEE;
@@ -25,19 +27,24 @@
 	height:4%;
 }
 		</style>
-		<script src="ejs.js"></script>
+		<script>
+			addEventListener("load", (event) => {
+					loginUUID="";
+					loaddir();
+			});
+		</script>
 	</head>
 	<body>
 		<div id="header" class="header_css">
 		<h1 style="margin-bottom:0;">后台文件操作</h1></div>
 
 		<div id="list" class="list_css">
-		<%= dirlist %>
+		<p id="file_list">--</p>
 		</div>
 
 		<div id="content" class="user_act_css">
 			<hr/>
-			<div id="login_ui">
+			<div id="act_login">
 				<form id="loginform">
 					用户:<input type="text" name="user"><br>
 					密码:<input type="text" name="passwd"><br>
@@ -45,7 +52,11 @@
 				</form>
 				<hr/>
 			</div>
-			<div>
+			<div id="act_outlogin">
+				<button>退出登录</button>
+				<hr/>
+			</div>
+			<div id="act_fileact">
 				<input type="file" name="file" id="uploadfile"/>
 				<input type="button" onclick="uploadfile()" value="上传" />
 				<hr/>
@@ -57,23 +68,79 @@
 		</div>
 		
 		<script>
-function login(){
-	const formData = new FormData(loginform);
-	var xhr = new XMLHttpRequest();
 
-	xhr.addEventListener("load", (event) => {
-	serval = JSON.parse(event.target.responseText);
+function loaddir(){
+	sendform("/f?&loginUUID=" + loginUUID +"&dir=/","POST",null,null,null,(err,res) => {
+		if (err) {
+			putFilesList.innerHTML=err;
+			return;
+		}
+		var serval=JSON.parse(res);
+		//没登陆的情况
+		if (serval.code == 1) {
+			putFilesList.innerHTML="未登录";
+			return;
+		}
+		
+		//解析json
+		var filelist=serval.filelist;
+		
+		var put_list="";
+		var dir="";
+		var file="";
+		for (var i=0 ; i < filelist.length; i++){
+			if (filelist[i].type == "dir") {
+				dir = dir + "<button>/" + filelist[i].name  + "</button><br/>";
+			}
+			if (filelist[i].type == "file") {
+				file = file + "<button>" + filelist[i].name  + "</button><br/>";
+			}
+			
+		}
+		put_list = dir + file;
+		putFilesList.innerHTML=put_list;
+	});
+}
+
+function login(){
+	sendform("/login","POST",null,null,loginform,(err,res) => {
+		if (err) alert(err);
+		
+		serval= JSON.parse(res);
 		if ( serval.login == 0 ) {
 			alert("登录成功\nID:"+serval.loginUUID);
-			location.href = "/?loginUUID=" + serval.loginUUID;
+			loginUUID=serval.loginUUID;
+			loaddir();
 		}
 		if ( serval.login == 1 ) alert("登录失败\n" + serval.msg);
 	});
-	xhr.addEventListener("error", (event) => {alert("哎呀！出了一些问题。");});
-    xhr.open("POST", "/login");
-    xhr.send(formData);
 }
+
+
+function sendform(url,sendType,header,headerval,formData,callback){
+	
+	if (formData != null) var fd = new FormData(formData);
+	else var fd = "";
+	
+	var xhr = new XMLHttpRequest();
+
+	xhr.addEventListener("load", (event) => {
+		var response = event.target.responseText;
+		callback(null, response); // 调用回调函数
+	});
+	xhr.addEventListener("error", (event) => {
+		callback("哎呀！出了一些问题。", null); // 调用回调函数
+	});
+		
+	xhr.open(sendType, url);
+		
+	if (header != null) xhr.setRequestHeader(header, headerval); 
+	xhr.send(fd);
+}
+
 const loginform = document.getElementById("loginform");
+const putFilesList = document.getElementById("file_list");
+
 loginform.addEventListener('submit', (event) => {
 	// 阻止表单的默认提交行为
 	event.preventDefault();
