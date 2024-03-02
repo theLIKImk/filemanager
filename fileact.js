@@ -11,10 +11,14 @@ const ___dir = "./www";
 const port = 80;
 ___path = "";
 ___url="";
+
+//用户组
 userg=[
 	{user: 'admin', passwd: 'admin'},
 	{user: 'user', passwd: '123465'}
 ];
+
+//会话ID
 userLoginUUID=[];
 
 http.createServer(function (req, res) {
@@ -23,19 +27,21 @@ http.createServer(function (req, res) {
 	url_allval = url.parse(req.url,true).search;
 		
 	if (url_name == "/"){
-		indexHTML(res,req);
-		return;
+		url_name="/file.html";
 	} else if ( url_name == "/login" ){
 		login(res,req);
+		return;
+	} else if ( url_name == "/f" ){
+		userFormDate(res,req);
 		return;
 	} else if ( url_name == "/upload" ){
 		upload(res,req);
 		return;
 	}
-
  
 	___url=url_name;
 	___path = ___dir+___url;
+	
 	console.log(___path);
 	loadfile(res,req);
 }).listen(port);
@@ -70,6 +76,7 @@ async function login(res,req){
     return;
 }
 
+
 function getUuid() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
     var r = (Math.random() * 16) | 0,
@@ -78,57 +85,71 @@ function getUuid() {
   });
 }
 
-function indexHTML(res,req){
-	//使用 ejs 动态页面模板引擎
+
+function userFormDate(res,req){
 	
-	var filelist="";
+	//没会话ID不给予任何操作
 	if (!userLoginUUID[url_val.loginUUID]) {
-		filelist="No Login";
-	}else {
-		filelist = showDir();
+		console.log("[INDEX NO_LOGIN_USER]");
+		backJSON(res,'{"code":"1","msg":"not login"}')
+		return;
 	}
 	
-	ejs.renderFile( ___dir + "/file.html", { dirlist: filelist }, function(err, str) {
-		if (err) {
-			console.log(err);
-		} else {
-			res.writeHead(200, { 'Content-Type': 'text/html' });
-			res.write(str);
-			res.end();
-		}
-    });
-	return;
+	console.log("[INDEX LOGIN_USER]");
+	var filelist = showDir(url_val.dir);
+	backJSON(res,'{"code":"0","msg":"","filelist":'+ JSON.stringify(filelist) +'}')
 }
 
-function showDir(){
-	file="";
-	dir="";
+
+function showDir(dir){
+	var item_list=[];
+	var item_info={};
+	var item_num=0;
+	var nowInPath=___dir + '/' + dir;
+
+
 
 	//读取目录
-	const items=fs.readdirSync(___path);
+	const items=fs.readdirSync(nowInPath);
 	
 	items.forEach(item => {
-		const stat = fs.statSync(___path +"/"+ item);
+		item_info={};
+		
+		const stat = fs.statSync(nowInPath +"/"+ item);
 		var item_date = stat.mtime.toString().split(" "); 
 		var item_size = stat.size.toString(); 
-		//item_date_arr = item_date.toString().split(/\s+/); 
+		
+		item_info["name"] = item;
+		
 		//是否为文件夹
-		if (stat.isDirectory()) {
-			dir = dir + '<br/>' + item;	
-		} else {
-			file = file + '<br/>' + item;
-		}
+		if (stat.isDirectory())item_info["type"] = "dir";
+		else item_info["type"] = "file";
+		
+		item_info["size"] = item_size;
+		item_info["date"] = item_date;
+
+		//加入列表
+		item_list[item_num]=item_info;
+		item_num++;
 	});
 	
-	return dir + '<br/>' + file;
+	return item_list;
 }
 
+
 function errHtml(res,code,msg){
+	console.log("[ERR]" + msg);
 	res.writeHead(code, {'Content-Type': 'text/html; charset=utf-8'});
 	res.end(msg);
 }
+function backJSON(res,json){
+	console.log("[JSON]" + json);
+	res.writeHead(200, {'Content-Type': 'text/json; charset=utf-8'});
+	res.end(json);
+}
 
 function loadfile(res,req){
+	console.log("[LOAD_DIR_FILE]");
 	var headType = ___path.substr(___path.lastIndexOf(".") + 1, ___path.length);
 	
 	fs.readFile(___path, function (err, data) {
