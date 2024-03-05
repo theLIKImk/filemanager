@@ -3,11 +3,11 @@
 		<meta charset="utf-8">
 		<style>
 .header_css{
-	background-image:url('ass/head.png');
+	background-color:#F8F8F8;
 	height:8%;
 }
 .list_css{
-	background-color:#FFFFF;
+	background-color:#FFFFFF;
 	height:88%;
 	width:70%;
 	float:left;
@@ -26,6 +26,10 @@
 	text-align:center;
 	height:4%;
 }
+.path_bar {
+	background-color:#EEEEEE;
+	height:5%;
+}
 		</style>
 		<script>
 			addEventListener("load", (event) => {
@@ -36,10 +40,13 @@
 	</head>
 	<body>
 		<div id="header" class="header_css">
-		<h1 style="margin-bottom:0;">后台文件操作</h1></div>
+		<h2 style="margin-bottom:0;">后台文件操作</h2></div>
 
 		<div id="list" class="list_css">
-		<p id="file_list">--</p>
+			<div id="path" class="path_bar">
+				<p id="file_path_put"></p>
+			</div>
+			<p id="file_list">--</p>
 		</div>
 
 		<div id="content" class="user_act_css">
@@ -69,8 +76,9 @@
 		
 		<script>
 
-function loaddir(){
-	sendform("/f?&loginUUID=" + loginUUID +"&dir=/","POST",null,null,null,(err,res) => {
+
+function loaddir(dirpath){
+	sendform("/f?&loginUUID=" + loginUUID +"&dir=" + dirpath,"POST",null,null,null,(err,res) => {
 		if (err) {
 			putFilesList.innerHTML=err;
 			return;
@@ -85,20 +93,37 @@ function loaddir(){
 		//解析json
 		var filelist=serval.filelist;
 		
+		//防止单斜杠出问题
+		if (dirpath=="/") var _dirpath="";
+		else var _dirpath=dirpath;
+
+		//列表
 		var put_list="";
 		var dir="";
 		var file="";
 		for (var i=0 ; i < filelist.length; i++){
 			if (filelist[i].type == "dir") {
-				dir = dir + "<button>/" + filelist[i].name  + "</button><br/>";
+				dir = dir + '<tr>' +
+							`<td width="20%"><button onclick="loaddir('${_dirpath}/${filelist[i].name}')">` + filelist[i].name  + '</button></td>' +
+							`<td><p>${filelist[i].type}</p></td>` +
+							`<td><p>${filelist[i].size}</p></td>` +
+							`<td><p>${filelist[i].date[3]}-${filelist[i].date[1]}-${filelist[i].date[2]}</p></td>` +
+							'</tr>';
 			}
 			if (filelist[i].type == "file") {
-				file = file + "<button>" + filelist[i].name  + "</button><br/>";
+				file = file + '<tr>' +
+							`<td><button>` + filelist[i].name  + '</button></td>' +
+							`<td><p>${filelist[i].type}</p></td>` +
+							`<td><p>${filelist[i].size}</p></td>` +
+							`<td><p>${filelist[i].date[3]}-${filelist[i].date[1]}-${filelist[i].date[2]}</p></td>` +
+							'</tr>';
 			}
 			
 		}
-		put_list = dir + file;
+		//返回上一级
+		put_list = `<table><tr><td><button onclick="loaddir('${_dirpath}/..')">..</button></td><td></td><td></td><td></td></tr>` + dir + file +'</table>';
 		putFilesList.innerHTML=put_list;
+		putFilespath.innerHTML="文件数量：" + serval.object +" | " + serval.path;
 	});
 }
 
@@ -110,12 +135,14 @@ function login(){
 		if ( serval.login == 0 ) {
 			alert("登录成功\nID:"+serval.loginUUID);
 			loginUUID=serval.loginUUID;
-			loaddir();
+			loaddir("/");
+			div_fileact.style.display="";
+			div_outlogin.style.display="";
+			div_login.style.display="none";
 		}
 		if ( serval.login == 1 ) alert("登录失败\n" + serval.msg);
 	});
 }
-
 
 function sendform(url,sendType,header,headerval,formData,callback){
 	
@@ -138,8 +165,19 @@ function sendform(url,sendType,header,headerval,formData,callback){
 	xhr.send(fd);
 }
 
+
+
 const loginform = document.getElementById("loginform");
 const putFilesList = document.getElementById("file_list");
+const putFilespath = document.getElementById("file_path_put");
+
+const div_login = document.getElementById("act_login");
+const div_outlogin = document.getElementById("act_outlogin");
+const div_fileact = document.getElementById("act_fileact");
+
+
+div_fileact.style.display="none";
+div_outlogin.style.display="none";
 
 loginform.addEventListener('submit', (event) => {
 	// 阻止表单的默认提交行为
