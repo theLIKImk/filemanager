@@ -8,7 +8,7 @@ const formidable = require('formidable');
 
 //设定
 const ___dir = "./www";
-const port = 80;
+const port = 8888;
 ___path = "";
 ___url="";
 
@@ -66,7 +66,11 @@ async function login(res,req){
 			//创建会话ID
 			var getloginUUID=getUuid();
 			console.log("Login OK! ID: " + getloginUUID);
-			userLoginUUID[getloginUUID]=true;
+			var userSingleDate={
+				login: "true",
+				path: "/"
+			};
+			userLoginUUID[getloginUUID]=userSingleDate;
 			res.end('{"login":"0","msg":"","loginUUID":"' + getloginUUID + '"}');
 			return;
 		}
@@ -87,26 +91,31 @@ function getUuid() {
 
 
 function userFormDate(res,req){
-	
+	if (url_val.loginUUID==null || url_val.loginUUID==undefined || url_val.loginUUID==""){
+		console.log("[INDEX NO_VAL]");
+		backJSON(res,'{"code":"1","msg":"not login"}')
+		return;
+	}
+
 	//没会话ID不给予任何操作
-	if (!userLoginUUID[url_val.loginUUID]) {
+	if ( userLoginUUID[url_val.loginUUID].login==undefined || !userLoginUUID[url_val.loginUUID].login) {
 		console.log("[INDEX NO_LOGIN_USER]");
 		backJSON(res,'{"code":"1","msg":"not login"}')
 		return;
 	}
 	
 	console.log("[INDEX LOGIN_USER]");
-	var filelist = showDir(url_val.dir);
-	backJSON(res,'{"code":"0","msg":"","filelist":'+ JSON.stringify(filelist) +'}')
+	var filelist = showDir(url_val.loginUUID,url_val.dir);
+	backJSON(res,'{"code":"0","msg":"", "path":"' + userLoginUUID[url_val.loginUUID].path + '" ,"object":"'+ filelist.length +'","filelist":'+ JSON.stringify(filelist) +'}')
 }
 
 
-function showDir(dir){
+function showDir(userUUID,dir){
 	var item_list=[];
 	var item_info={};
 	var item_num=0;
 	var nowInPath=___dir + '/' + dir;
-
+	userLoginUUID[userUUID].path=dir;
 
 
 	//读取目录
